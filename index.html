@@ -1510,12 +1510,8 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-
         // --- CONFIGURATION ---
-        // The API_URL is now your own Netlify Function endpoint.
-        // The filename "remove-background" becomes part of the URL.
-        const API_URL = '/.netlify/functions/remove-background';
-        // The API_KEY is no longer needed on the client-side!
+        const API_URL = '/.netlify/functions/remove-background'; // Netlify Function endpoint
 
         // --- DOM ELEMENT SELECTION ---
         const pageViews = document.querySelectorAll('.page-view');
@@ -1525,21 +1521,13 @@
         const showHowItWorksBtn = document.getElementById('show-how-it-works-btn');
         const showTestimonialsBtn = document.getElementById('show-testimonials-btn');
         const showFAQBtn = document.getElementById('show-faq-btn');
-
         const fileInput = document.getElementById('file-input');
-        
-
-        // Page Sections
         const mainContent = document.getElementById('main-content');
         const bgRemoverTool = document.getElementById('bg-remover-tool');
         const resultsSection = document.getElementById('results-section');
-
-        // Upload Triggers
         const heroUploadBtn = document.getElementById('hero-upload-btn');
         const toolUploadBtn = document.getElementById('tool-main-upload-btn');
         const uploadAnotherBtn = document.getElementById('upload-another-btn');
-        
-        // Results View Elements
         const imageLoader = document.getElementById('image-loader');
         const resultImage = document.getElementById('result-image');
         const resultThumbnail = document.getElementById('result-thumbnail');
@@ -1549,6 +1537,13 @@
         const afterBtn = document.getElementById('after-btn');
         const imageWrapper = document.getElementById('image-wrapper');
         const toolErrorMessage = document.getElementById('tool-error-message');
+        const closeBgRemover = document.getElementById('close-bg-remover');
+        const ctaGetStarted = document.getElementById('cta-get-started');
+        const menuBgRemover1 = document.getElementById('menu-bg-remover1');
+        const menuBgRemover2 = document.getElementById('menu-bg-remover2');
+        const footerImageEnhancer = document.getElementById('footer-image-enhancer');
+        const footerBackgroundChanger = document.getElementById('footer-background-changer');
+        const footerApiDocs = document.getElementById('footer-api-docs');
 
         // --- STATE MANAGEMENT ---
         let originalFileUrl = null;
@@ -1562,59 +1557,69 @@
          */
         const showView = (viewId) => {
             pageViews.forEach(view => view.classList.remove('active'));
-            document.getElementById(viewId)?.classList.add('active');
-            window.scrollTo(0, 0);
+            const view = document.getElementById(viewId);
+            if (view) {
+                view.classList.add('active');
+                window.scrollTo(0, 0);
+            } else {
+                console.warn(`View with ID "${viewId}" not found.`);
+            }
         };
 
         /**
-         * Handles the file processing logic: shows loader, sends to API, and displays results.
+         * Handles the file processing logic: shows loader, sends to Netlify Function, and displays results.
          * @param {File} file The image file to process.
          */
         const processFile = async (file) => {
             if (!file || !file.type.startsWith('image/')) {
-                toolErrorMessage.textContent = 'Please select a valid image file.';
+                if (toolErrorMessage) {
+                    toolErrorMessage.textContent = 'Please select a valid image file.';
+                }
                 return;
             }
-            toolErrorMessage.textContent = '';
-        
+            if (toolErrorMessage) {
+                toolErrorMessage.textContent = '';
+            }
+            
             showView('results-section');
-            imageLoader.classList.add('active');
-        
+            if (imageLoader) {
+                imageLoader.classList.add('active');
+            }
+            
             originalFileUrl = URL.createObjectURL(file);
-        
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
             try {
-                // --- Nayi Tabdeeli Yahan Hai ---
-                // File ko pehlay raw binary data (ArrayBuffer) mein parhein
-                const fileBuffer = await file.arrayBuffer();
-        
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: {
-                        // Server ko batayein ke hum kis type ki file bhej rahay hain
-                        'Content-Type': file.type
-                    },
-                    body: fileBuffer // Ab File object ki bajaye raw data bhejein
+                    body: formData,
                 });
-                // --- Tabdeeli Khatam ---
-        
+
                 if (!response.ok) {
-                    // Server se anay walay error message ko behtar tareeqay se dikhayein
-                    const errorText = await response.text();
-                    throw new Error(`API Error: ${errorText || response.statusText}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `API Error: ${response.statusText}`);
                 }
-        
+                
                 const imageBlob = await response.blob();
                 processedFileUrl = URL.createObjectURL(imageBlob);
-        
+                
                 populateResults();
-        
+
             } catch (error) {
                 console.error('Processing failed:', error);
                 showView('bg-remover-tool');
-                toolErrorMessage.textContent = 'Sorry, could not process the image. Please try another one.';
+                if (toolErrorMessage) {
+                    toolErrorMessage.textContent = 'Sorry, could not process the image. Please try another one.';
+                }
             } finally {
-                imageLoader.classList.remove('active');
-                fileInput.value = ''; // Reset file input for next use
+                if (imageLoader) {
+                    imageLoader.classList.remove('active');
+                }
+                if (fileInput) {
+                    fileInput.value = ''; // Reset file input for next use
+                }
             }
         };
         
@@ -1622,13 +1627,21 @@
          * Populates the results page with the processed image data.
          */
         const populateResults = () => {
-            resultImage.src = processedFileUrl;
-            resultThumbnail.src = processedFileUrl;
-            downloadBtn.href = processedFileUrl;
+            if (resultImage) {
+                resultImage.src = processedFileUrl;
+            }
+            if (resultThumbnail) {
+                resultThumbnail.src = processedFileUrl;
+            }
+            if (downloadBtn) {
+                downloadBtn.href = processedFileUrl;
+            }
             
             const img = new Image();
             img.onload = () => {
-                imageDimensions.textContent = `${img.width}px:${img.height}px`;
+                if (imageDimensions) {
+                    imageDimensions.textContent = `${img.width}px:${img.height}px`;
+                }
             };
             img.src = processedFileUrl;
             
@@ -1641,113 +1654,177 @@
          * @param {boolean} isAfterView - True to show the processed image, false for the original.
          */
         const toggleResultView = (isAfterView) => {
-            afterBtn.classList.toggle('active', isAfterView);
-            beforeBtn.classList.toggle('active', !isAfterView);
-            imageWrapper.classList.toggle('checkerboard-bg', isAfterView);
-            resultImage.src = isAfterView ? processedFileUrl : originalFileUrl;
+            if (afterBtn) {
+                afterBtn.classList.toggle('active', isAfterView);
+            }
+            if (beforeBtn) {
+                beforeBtn.classList.toggle('active', !isAfterView);
+            }
+            if (imageWrapper) {
+                imageWrapper.classList.toggle('checkerboard-bg', isAfterView);
+            }
+            if (resultImage) {
+                resultImage.src = isAfterView ? processedFileUrl : originalFileUrl;
+            }
         };
         
         // --- EVENT LISTENERS ---
-        
+
         // Navigation
-        homeBtn.addEventListener('click', () => showView('main-content'));
-        showToolBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showView('bg-remover-tool');
-        });
-        showFeaturesBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            showView('main-content');
-            // Scroll to features section after showing the main content
-            setTimeout(() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }), 100);
-        });
-        showHowItWorksBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('main-content');
-        setTimeout(() => smoothScrollToElement('how-it-works', 1000), 150);
-        });
+        if (homeBtn) {
+            homeBtn.addEventListener('click', () => showView('main-content'));
+        } else {
+            console.warn('Element with ID "home-btn" not found.');
+        }
 
-        showTestimonialsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('main-content');
-        setTimeout(() => smoothScrollToElement('testimonials', 1500), 150);
-        });
+        if (showToolBtn) {
+            showToolBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showView('bg-remover-tool');
+            });
+        } else {
+            console.warn('Element with ID "show-tool-btn" not found.');
+        }
 
-        showFAQBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        showView('main-content');
-        setTimeout(() => smoothScrollToElement('faq', 2000), 150);
-        });
+        if (showFeaturesBtn) {
+            showFeaturesBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showView('main-content');
+                setTimeout(() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }), 100);
+            });
+        } else {
+            console.warn('Element with ID "show-features-btn" not found.');
+        }
 
+        if (showHowItWorksBtn) {
+            showHowItWorksBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showView('main-content');
+                setTimeout(() => smoothScrollToElement('how-it-works', 1000), 150);
+            });
+        } else {
+            console.warn('Element with ID "show-how-it-works-btn" not found.');
+        }
+
+        if (showTestimonialsBtn) {
+            showTestimonialsBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showView('main-content');
+                setTimeout(() => smoothScrollToElement('testimonials', 1500), 150);
+            });
+        } else {
+            console.warn('Element with ID "show-testimonials-btn" not found.');
+        }
+
+        if (showFAQBtn) {
+            showFAQBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                showView('main-content');
+                setTimeout(() => smoothScrollToElement('faq', 2000), 150);
+            });
+        } else {
+            console.warn('Element with ID "show-faq-btn" not found.');
+        }
 
         // Scrolling Function Setup
         function smoothScrollToElement(targetId, duration = 800) {
-        const target = document.getElementById(targetId);
-        if (!target) return;
+            const target = document.getElementById(targetId);
+            if (!target) {
+                console.warn(`Element with ID "${targetId}" not found.`);
+                return;
+            }
 
-        const targetY = target.getBoundingClientRect().top + window.scrollY;
-        const startY = window.scrollY;
-        const diff = targetY - startY;
-        let startTime;
+            const targetY = target.getBoundingClientRect().top + window.scrollY;
+            const startY = window.scrollY;
+            const diff = targetY - startY;
+            let startTime;
 
-        function animateScroll(time) {
-            if (!startTime) startTime = time;
-            const timeElapsed = time - startTime;
-            const progress = Math.min(timeElapsed / duration, 1);
-            window.scrollTo(0, startY + diff * easeInOutCubic(progress));
-            if (progress < 1) requestAnimationFrame(animateScroll);
+            function animateScroll(time) {
+                if (!startTime) startTime = time;
+                const timeElapsed = time - startTime;
+                const progress = Math.min(timeElapsed / duration, 1);
+                window.scrollTo(0, startY + diff * easeInOutCubic(progress));
+                if (progress < 1) requestAnimationFrame(animateScroll);
+            }
+
+            function easeInOutCubic(t) {
+                return t < 0.5
+                    ? 4 * t * t * t
+                    : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            requestAnimationFrame(animateScroll);
         }
-
-        function easeInOutCubic(t) {
-            return t < 0.5
-            ? 4 * t * t * t
-            : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        }
-
-        requestAnimationFrame(animateScroll);
-        }
-
 
         // File Upload Triggers
-        heroUploadBtn.addEventListener('click', () => {
-            showView('bg-remover-tool');
-            // A small delay ensures the view is visible before the click
-            setTimeout(() => fileInput.click(), 100);
-        });
-        toolUploadBtn.addEventListener('click', () => fileInput.click());
-        uploadAnotherBtn.addEventListener('click', () => showView('bg-remover-tool'));
+        if (heroUploadBtn) {
+            heroUploadBtn.addEventListener('click', () => {
+                showView('bg-remover-tool');
+                setTimeout(() => fileInput?.click(), 100);
+            });
+        } else {
+            console.warn('Element with ID "hero-upload-btn" not found.');
+        }
+
+        if (toolUploadBtn) {
+            toolUploadBtn.addEventListener('click', () => fileInput?.click());
+        } else {
+            console.warn('Element with ID "tool-main-upload-btn" not found.');
+        }
+
+        if (uploadAnotherBtn) {
+            uploadAnotherBtn.addEventListener('click', () => showView('bg-remover-tool'));
+        } else {
+            console.warn('Element with ID "upload-another-btn" not found.');
+        }
         
         // File Input Change
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                processFile(e.target.files[0]);
-            }
-        });
+        if (fileInput) {
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processFile(e.target.files[0]);
+                }
+            });
+        } else {
+            console.warn('Element with ID "file-input" not found.');
+        }
 
         // Results View Toggle
-        beforeBtn.addEventListener('click', () => toggleResultView(false));
-        afterBtn.addEventListener('click', () => toggleResultView(true));
+        if (beforeBtn) {
+            beforeBtn.addEventListener('click', () => toggleResultView(false));
+        } else {
+            console.warn('Element with ID "before-btn" not found.');
+        }
+
+        if (afterBtn) {
+            afterBtn.addEventListener('click', () => toggleResultView(true));
+        } else {
+            console.warn('Element with ID "after-btn" not found.');
+        }
 
         // Drag & Drop Functionality for the Tool Page
         const setupDragAndDrop = () => {
-            const toolPage = bgRemoverTool; // Use the already selected element
+            if (!bgRemoverTool) {
+                console.warn('Element with ID "bg-remover-tool" not found.');
+                return;
+            }
             
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                toolPage.addEventListener(eventName, e => {
+                bgRemoverTool.addEventListener(eventName, e => {
                     e.preventDefault();
                     e.stopPropagation();
                 }, false);
             });
 
             ['dragenter', 'dragover'].forEach(eventName => {
-                toolPage.addEventListener(eventName, () => toolPage.style.background = '#e9eafc');
+                bgRemoverTool.addEventListener(eventName, () => bgRemoverTool.style.background = '#e9eafc');
             });
 
             ['dragleave', 'drop'].forEach(eventName => {
-                toolPage.addEventListener(eventName, () => toolPage.style.background = '');
+                bgRemoverTool.addEventListener(eventName, () => bgRemoverTool.style.background = '');
             });
 
-            toolPage.addEventListener('drop', e => {
+            bgRemoverTool.addEventListener('drop', e => {
                 const droppedFiles = e.dataTransfer.files;
                 if (droppedFiles && droppedFiles[0]) {
                     processFile(droppedFiles[0]);
@@ -1756,65 +1833,81 @@
         };
 
         // Close Button in BG Remover Tool
-        document.getElementById('close-bg-remover')?.addEventListener('click', () => {
-        document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
-        document.getElementById('main-content')?.classList.add('active'); // Show previous view
-        document.getElementById('main-content')?.scrollIntoView({ behavior: 'smooth' }); // Optional scroll to main
-        });
-
-
+        if (closeBgRemover) {
+            closeBgRemover.addEventListener('click', () => {
+                document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+                if (mainContent) {
+                    mainContent.classList.add('active');
+                    mainContent.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        } else {
+            console.warn('Element with ID "close-bg-remover" not found.');
+        }
 
         // ComingSoon Function 
         function showComingSoon(target, message = "🚧 Coming Soon!") {
-        // Remove old notice if any
-        document.querySelector('.coming-soon-notice')?.remove();
-
-        // Create the element
-        const notice = document.createElement('div');
-        notice.className = 'coming-soon-notice';
-        notice.textContent = message;
-        document.body.appendChild(notice);
-
-        // Get target position
-        const rect = target.getBoundingClientRect();
-        notice.style.top = `${rect.bottom + window.scrollY + 5}px`;
-        notice.style.left = `${rect.left + window.scrollX}px`;
-
-        // Show it
-        setTimeout(() => notice.classList.add('show'), 10);
-
-        // Hide after 2.5 seconds
-        setTimeout(() => {
-            notice.classList.remove('show');
-            setTimeout(() => notice.remove(), 300);
-        }, 2500);
+            document.querySelector('.coming-soon-notice')?.remove();
+            const notice = document.createElement('div');
+            notice.className = 'coming-soon-notice';
+            notice.textContent = message;
+            document.body.appendChild(notice);
+            const rect = target.getBoundingClientRect();
+            notice.style.top = `${rect.bottom + window.scrollY + 5}px`;
+            notice.style.left = `${rect.left + window.scrollX}px`;
+            setTimeout(() => notice.classList.add('show'), 10);
+            setTimeout(() => {
+                notice.classList.remove('show');
+                setTimeout(() => notice.remove(), 300);
+            }, 2500);
         }
 
-        // Assign events
-        document.getElementById('footer-image-enhancer')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showComingSoon(e.currentTarget, '🪄 Image Enhancer Coming Soon!');
-        });
+        if (footerImageEnhancer) {
+            footerImageEnhancer.addEventListener('click', (e) => {
+                e.preventDefault();
+                showComingSoon(e.currentTarget, '🪄 Image Enhancer Coming Soon!');
+            });
+        } else {
+            console.warn('Element with ID "footer-image-enhancer" not found.');
+        }
 
-        document.getElementById('footer-background-changer')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showComingSoon(e.currentTarget, '🎨 Background Changer Coming Soon!');
-        });
+        if (footerBackgroundChanger) {
+            footerBackgroundChanger.addEventListener('click', (e) => {
+                e.preventDefault();
+                showComingSoon(e.currentTarget, '🎨 Background Changer Coming Soon!');
+            });
+        } else {
+            console.warn('Element with ID "footer-background-changer" not found.');
+        }
 
-        document.getElementById('footer-api-docs')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        showComingSoon(e.currentTarget, '📘 API Documentation Coming Soon!');
-        });
+        if (footerApiDocs) {
+            footerApiDocs.addEventListener('click', (e) => {
+                e.preventDefault();
+                showComingSoon(e.currentTarget, '📘 API Documentation Coming Soon!');
+            });
+        } else {
+            console.warn('Element with ID "footer-api-docs" not found.');
+        }
         
-        // Footer Background Remover Button Function
-        document.getElementById('menu-bg-remover1').addEventListener('click', () => showView('bg-remover-tool'));
-        document.getElementById('menu-bg-remover2').addEventListener('click', () => showView('bg-remover-tool'));
+        if (menuBgRemover1) {
+            menuBgRemover1.addEventListener('click', () => showView('bg-remover-tool'));
+        } else {
+            console.warn('Element with ID "menu-bg-remover1" not found.');
+        }
 
+        if (menuBgRemover2) {
+            menuBgRemover2.addEventListener('click', () => showView('bg-remover-tool'));
+        } else {
+            console.warn('Element with ID "menu-bg-remover2" not found.');
+        }
 
-        // CTA button functionality
-        document.getElementById('cta-get-started').addEventListener('click', () => showView('bg-remover-tool'));
+        if (ctaGetStarted) {
+            ctaGetStarted.addEventListener('click', () => showView('bg-remover-tool'));
+        } else {
+            console.warn('Element with ID "cta-get-started" not found.');
+        }
 
-        // --- FAQ TOGGLE FUNCTIONALITY ---
+        // FAQ Toggle Functionality
         document.querySelectorAll('.faq-question').forEach(question => {
             question.addEventListener('click', () => {
                 const item = question.parentNode;
@@ -1824,8 +1917,7 @@
 
         // Paste Functionality (Ctrl+V)
         document.addEventListener('paste', e => {
-            // Check if the tool page is active and files are being pasted
-            if (bgRemoverTool.classList.contains('active') && e.clipboardData.files.length > 0) {
+            if (bgRemoverTool?.classList.contains('active') && e.clipboardData.files.length > 0) {
                 e.preventDefault();
                 processFile(e.clipboardData.files[0]);
             }
@@ -1833,7 +1925,7 @@
 
         // --- INITIALIZATION ---
         setupDragAndDrop();
-        showView('main-content'); // Start on the homepage
+        showView('main-content');
     });
     </script>
 
