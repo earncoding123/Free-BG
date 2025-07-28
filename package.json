@@ -1,7 +1,7 @@
 {
-    "name": "free-bg-remover",
-    "version": "1.0.0",
-    "dependencies": {
-      "node-fetch": "^3.3.0"
-    }
+  "name": "free-bg-remover",
+  "version": "1.0.0",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
   }
+}
