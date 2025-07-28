@@ -1576,32 +1576,38 @@
                 return;
             }
             toolErrorMessage.textContent = '';
-            
+        
             showView('results-section');
             imageLoader.classList.add('active');
-            
+        
             originalFileUrl = URL.createObjectURL(file);
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            
+        
             try {
+                // --- Nayi Tabdeeli Yahan Hai ---
+                // File ko pehlay raw binary data (ArrayBuffer) mein parhein
+                const fileBuffer = await file.arrayBuffer();
+        
                 const response = await fetch(API_URL, {
-                method: 'POST',
-                // The 'X-API-Key' header is no longer sent from the browser.
-                // The function will add it on the server-side.
-                body: file, // Send the file directly
-            });
-
+                    method: 'POST',
+                    headers: {
+                        // Server ko batayein ke hum kis type ki file bhej rahay hain
+                        'Content-Type': file.type
+                    },
+                    body: fileBuffer // Ab File object ki bajaye raw data bhejein
+                });
+                // --- Tabdeeli Khatam ---
+        
                 if (!response.ok) {
-                    throw new Error(`API Error: ${response.statusText}`);
+                    // Server se anay walay error message ko behtar tareeqay se dikhayein
+                    const errorText = await response.text();
+                    throw new Error(`API Error: ${errorText || response.statusText}`);
                 }
-                
+        
                 const imageBlob = await response.blob();
                 processedFileUrl = URL.createObjectURL(imageBlob);
-                
+        
                 populateResults();
-
+        
             } catch (error) {
                 console.error('Processing failed:', error);
                 showView('bg-remover-tool');
