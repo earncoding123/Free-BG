@@ -1,53 +1,55 @@
 // netlify/functions/remove-background.js
+
+// node-fetch v2 istemal karein jo Netlify ke sath zyada stable hai
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
-  // Rule 1: Only accept POST requests
+  // --- Rule 1: Sirf POST request qabool karein ---
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
   try {
-    // Rule 2: Get API Key from environment variables
+    // --- Rule 2: API Key hasil karein ---
     const { API_KEY } = process.env;
     const apiUrl = 'https://earncoding-pixelperfect.hf.space/remove-background/';
 
     if (!API_KEY) {
-      console.error("Function Error: API_KEY is not set in Netlify environment variables.");
+      console.error("FATAL ERROR: API_KEY environment variable is not set in Netlify.");
       return { statusCode: 500, body: 'Server configuration error: API key is missing.' };
     }
     
-    // Rule 3: Check if the client sent a Content-Type header
+    // --- Rule 3: Content-Type header ko check karein ---
     const contentType = event.headers['content-type'];
     if (!contentType) {
-        console.error("Function Error: Client did not send a Content-Type header.");
+        console.error("FUNCTION ERROR: Request is missing the 'Content-Type' header.");
         return { statusCode: 400, body: 'Bad Request: Content-Type header is required.'};
     }
 
-    // Rule 4: The body from the browser (sent as ArrayBuffer) is base64 encoded by Netlify.
-    // We must decode it back to a binary buffer.
+    // --- Rule 4: Browser se anay walay data ko sahi format mein layein ---
+    // Netlify body ko base64 mein encode karta hai. Usay wapis binary Buffer mein decode karein.
     const imageBuffer = Buffer.from(event.body, 'base64');
 
-    // Rule 5: Call the external API with the correct data and headers
+    // --- Rule 5: Asal API ko request bhejein ---
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': contentType, // Forward the original content type
+        'Content-Type': contentType, // Browser wala original content type aagay bhejein
         'X-API-Key': API_KEY
       },
       body: imageBuffer,
     });
 
-    // Rule 6: Handle the response from the external API
+    // --- Rule 6: Asal API ke response ko handle karein ---
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`External API Failed. Status: ${response.status}, Body: ${errorText}`);
+      console.error(`EXTERNAL API FAILED. Status: ${response.status}, Details: ${errorText}`);
       return { statusCode: response.status, body: `External API Error: ${errorText}` };
     }
 
     const responseBuffer = await response.buffer();
 
-    // Rule 7: Send the successful response (the processed image) back to the browser
+    // --- Rule 7: Kamyab response (processed image) wapis browser ko bhejein ---
     return {
       statusCode: 200,
       headers: { 'Content-Type': response.headers.get('content-type') },
@@ -56,10 +58,12 @@ exports.handler = async (event) => {
     };
 
   } catch (error) {
-    console.error('An unexpected error occurred in the function:', error);
+    // --- Agar hamaray apnay function mein koi ghalati ho ---
+    const requestId = event.headers['x-nf-request-id'];
+    console.error(`UNEXPECTED FUNCTION ERROR. Request ID: ${requestId}`, error);
     return {
       statusCode: 500,
-      body: `A critical internal error occurred. Check the function logs on Netlify. Request ID: ${event.headers['x-nf-request-id']}`,
+      body: `A critical internal error occurred. Check the function logs on Netlify. ID: ${requestId}`,
     };
   }
 };
